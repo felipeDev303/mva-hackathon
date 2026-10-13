@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────
+# ZONA ROJA — datos del paciente. NUNCA a git, NUNCA a un LLM.
+# ─────────────────────────────────────────────────────────────
+data/*
+!data/.gitkeep
+work/*
+!work/.gitkeep
+
+# Cualquier archivo genómico, esté donde esté (excepto fixtures sintéticos)
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.vcf.gz.csi
+*.bcf
+*.bam
+*.bai
+*.cram
+*.crai
+*.fastq
+*.fastq.gz
+*.fq.gz
+*.gvcf.gz
+!fixtures/*.vcf
+
+# Referencias y caches pesados (se descargan, no se versionan)
+ref/
+*.fa
+*.fa.fai
+*.fasta
+.vep/
+exomiser-data/
+
+# Código de terceros descargado (evaluation.py del Space)
+vendor/*
+!vendor/.gitkeep
+
+# Notebooks: el estado guardado puede contener genotipos
+*.ipynb
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+
+# Secretos
+.env
+*.token
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

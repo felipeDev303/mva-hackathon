@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Read(./data/**)",
+      "Read(./work/**)",
+      "Edit(./data/**)",
+      "Edit(./work/**)",
+      "Read(**/*.vcf.gz)",
+      "Read(**/*.bam)",
+      "Read(**/*.cram)",
+      "Read(**/*.fastq.gz)",
+      "Read(./.env)"
+    ],
+    "allow": [
+      "Read(./outputs/**)",
+      "Read(./fixtures/**)",
+      "Bash(make test)",
+      "Bash(make fixtures)",
+      "Bash(make guard)",
+      "Bash(make lint)",
+      "Bash(pytest:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Grep|Glob|Edit|Write|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/data_boundary.py\"" }
+        ]
+      }
+    ]
+  }
+}

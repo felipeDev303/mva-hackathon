@@ -1,0 +1,30 @@
+# Entorno reproducible del pipeline.
+#   mamba env create -f environment.yml
+#   conda activate mva
+# Probado en Ubuntu 24.04 sobre WSL2. Las versiones quedan fijadas por major
+# para que el write-up pueda citarlas; `make versions` imprime las exactas.
+name: mva
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  # Manipulación de VCF/BAM
+  - bcftools>=1.21
+  - htslib>=1.21
+  - samtools>=1.21
+  # Anotación y fase
+  - ensembl-vep=116       # usar la misma release para el caché (~25 GB GRCh38)
+  - whatshap>=2.3
+  - igv-reports>=1.12     # reportes HTML locales de loci candidatos (zona roja)
+  # Exomiser corre sobre Java 21 (Exomiser >= 15.0)
+  - openjdk=21
+  # Python
+  - pandas>=2.2
+  - pyyaml>=6
+  - pytest>=8
+  - huggingface_hub>=0.25
+  - jupyterlab>=4         # opcional; ver regla de notebooks en CLAUDE.md
+  - pip
+  - pip:
+      - -e .

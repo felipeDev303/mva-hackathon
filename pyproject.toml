@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mva"
+version = "0.1.0"
+description = "Pipeline reproducible de priorización de variantes para el MVA Hackathon 2026 (Track 1)"
+requires-python = ">=3.11"
+license = { text = "CC-BY-4.0" }
+dependencies = ["pandas>=2.2", "pyyaml>=6"]
+
+[project.scripts]
+mva-guard = "mva.guard:main"
+mva-fixtures = "mva.fixtures:main"
+mva-qc = "mva.qc:main"
+mva-exomiser-config = "mva.exomiser:main"
+mva-exomiser-summary = "mva.exomiser:summary_main"
+mva-prioritize = "mva.prioritize:main"
+mva-submission = "mva.submission:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,6 @@
+# Un término HPO por línea: HP:XXXXXXX  <etiqueta opcional>
+# Cópialos desde el archivo de fenotipos del dataset. Los términos HPO están en la
+# lista KEEP de los organizadores: pueden versionarse y mostrarse al LLM.
+# Ejemplo de formato (NO son los fenotipos del caso):
+# HP:0000252  Microcephaly
+# HP:0001511  Intrauterine growth retardation

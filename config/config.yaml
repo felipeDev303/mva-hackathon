@@ -1,0 +1,91 @@
+# Configuración central. Todo umbral que aparezca en el write-up vive aquí.
+# Este archivo NO contiene datos del paciente y sí se versiona.
+
+proband_id: PROBAND01          # único id aceptado por el Space
+assembly: GRCh38               # el Space exige coordenadas GRCh38
+chrom_prefix: "chr"            # el Space usa "chr15"; submission.py normaliza a esto
+
+paths:
+  raw_vcf: data/CHANGE_ME.vcf.gz          # el VCF descargado del dataset
+  bam: data/CHANGE_ME.bam                 # o .cram; solo para fase e IGV
+  reference_fasta: ref/GRCh38.fa          # misma referencia del alineamiento
+  normalized_vcf: work/normalized.vcf.gz
+  vep_vcf: work/vep.vcf.gz
+  annotated_tsv: work/annotated.tsv
+  exomiser_dir: work/exomiser
+  candidates_tsv: work/candidate_variants.tsv
+  outputs_dir: outputs
+  submission_csv: submissions/track1_submission.csv
+
+# Términos HPO del caso. Están en la lista KEEP de los organizadores,
+# así que pueden vivir aquí y verlos el LLM.
+hpo_file: config/hpo_terms.txt
+
+filters:
+  require_pass: true
+  min_gq: 20              # se aplica en la normalización (bcftools), no en Python
+  min_dp: 8
+  af_max_recessive: 0.01  # AF máxima (gnomAD, popmax) para cada alelo de un par AR
+  af_max_dominant: 0.0001 # AF máxima para modelo dominante / de novo
+  spliceai_min: 0.2       # delta score mínimo para considerar una variante de splicing
+  keep_impacts: [HIGH, MODERATE]
+
+# Variantes conocidas de la literatura que un filtro por IMPACT descartaría
+# (p. ej., alelos hipomórficos regulatorios). Se rescatan aunque sean MODIFIER
+# o tengan AF > umbral. Fuente: literatura pública; ver docs/LITERATURE.md.
+known_variants:
+  - id: rs576524605
+    gene: BUB1B
+    note: "Alelo hipomórfico upstream (haplotipo 6G3), Matsuura 2006; ver docs/LITERATURE.md"
+
+# Prior de genes. Úsalo con cuidado: el ranking se reporta CON y SIN prior
+# para que el write-up muestre que el pipeline no depende de saber la respuesta.
+gene_prior:
+  default: 0.5
+  panels:
+    mva_established:      # genes OMIM de MVA1-4
+      weight: 1.0
+      genes: [BUB1B, CEP57, TRIP13, CENATAC]
+    mitotic_checkpoint:   # SAC / segregación cromosómica (candidatos plausibles)
+      weight: 0.8
+      genes: [BUB1, BUB3, KNL1, ZWINT, MAD2L1, MAD1L1, TTK, CDC20, KNTC1, ZW10, CENPE, CENPF, NDC80, AURKB, CDCA8, INCENP, SGO1, ESCO2, RAD21, SMC1A, SMC3, STAG2, PDS5A, CEP152, PLK4]
+
+scoring:
+  impact_base: {HIGH: 1.0, MODERATE: 0.55, LOW: 0.2, MODIFIER: 0.1}
+  weights:
+    impact: 0.35
+    cadd: 0.20      # CADD_PHRED / 40, recortado a 1
+    revel: 0.15
+    spliceai: 0.15
+    clinvar: 0.15   # 1 si CLIN_SIG contiene pathogenic, 0.5 si likely_pathogenic
+  max_pairs_per_gene: 3   # pares evaluados por gen (top-k variantes)
+  # MVA es autosómica recesiva en todos los genes descritos: el modelo dominante
+  # se conserva como hipótesis alternativa pero penalizado.
+  model_weights: {AR_comphet: 1.0, AR_hom: 1.0, AD_single: 0.3}
+  # Variantes de known_variants tienen evidencia funcional publicada que los
+  # predictores in silico no capturan (p. ej., hipomorfos regulatorios).
+  known_variant_floor: 0.8
+  exomiser_pheno_weight: 0.3  # peso del score fenotípico de Exomiser en el score del gen
+
+# Mapeo de columnas del TSV anotado (bcftools +split-vep). Ajusta si cambias
+# los plugins de VEP; las columnas ausentes se tratan como NaN.
+columns:
+  chrom: CHROM
+  pos: POS
+  ref: REF
+  alt: ALT
+  gt: GT
+  gene: SYMBOL
+  consequence: Consequence
+  impact: IMPACT
+  af: [gnomADe_AF, gnomADg_AF, MAX_AF]
+  cadd: CADD_PHRED
+  revel: REVEL
+  spliceai: [SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL]
+  clinvar: CLIN_SIG
+  existing: Existing_variation
+
+guard:
+  max_variant_rows: 50        # filas a nivel variante permitidas por archivo en outputs/
+  max_file_bytes: 1000000
+  forbidden_columns: [GT, AD, DP, GQ, PL, PS, FORMAT, SAMPLE, GENOTYPE]
