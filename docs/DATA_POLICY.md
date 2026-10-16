@@ -29,7 +29,7 @@ Línea para el write-up (rellenar):
 | modelos/embeddings entrenados sobre los datos crudos | `outputs/` (validado por guard) |
 
 ## Confirmación de borrado (plantilla)
-Para: RarediseaserealkidMVAhackathon2026@synapse.org
+Para: cnb@sagebase.org
 Asunto: MVA Hackathon 2026 – data deletion confirmation – <HF username>
 
 > I confirm that on <fecha> I deleted all hackathon data (VCF/BAM/CRAM/FASTQ, indices, derived

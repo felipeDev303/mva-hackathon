@@ -22,4 +22,4 @@ LEFT=$(find . "$HOME" \( -name '*.vcf.gz' -o -name '*.bam' -o -name '*.cram' -o 
         -not -path './fixtures/*' 2>/dev/null | grep -i -E 'mva|REDACTED|REDACTED' || true)
 if [[ -n "$LEFT" ]]; then echo "ATENCIÓN, quedan archivos:"; echo "$LEFT"; exit 1; fi
 date -u +"Borrado completado %Y-%m-%dT%H:%MZ" | tee docs/DELETION_LOG.txt
-echo "Ahora envía la confirmación a RarediseaserealkidMVAhackathon2026@synapse.org (plantilla en docs/DATA_POLICY.md)."
+echo "Ahora envía la confirmación a cnb@sagebase.org (plantilla en docs/DATA_POLICY.md)."
