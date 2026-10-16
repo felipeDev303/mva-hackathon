@@ -24,13 +24,21 @@ verde llegue algo con forma de genoma.
 ```bash
 # WSL2 / Linux
 make setup && conda activate mva
-make test                      # 23 tests con fixtures sintéticos
+make test                      # tests con fixtures sintéticos (make setup activa el pre-commit)
 # editar config/config.yaml (rutas) y config/hpo_terms.txt (HPO del caso)
 make real-qc                   # → outputs/qc_summary.json
 make real-normalize real-annotate real-exomiser real-prioritize
 make real-phase && make real-prioritize PHASE=outputs/phase_summary.tsv
 make fetch-eval real-submission  # → submissions/track1_submission.csv validado
 ```
+
+## Wiki de seguimiento
+
+`docs/wiki/` es un vault de Obsidian versionado con el repo (zona verde). Ábrelo en Obsidian, activa los
+plugins core *Templates* y *Daily notes* (ya configurados) e instala el comunitario **Dataview** para el
+tablero (`plan/tablero.md`). Cada `make real-*` deja su nota en `corridas/` con el commit y el resumen de
+`outputs/`; `make wiki-day`, `make wiki-adr T="..."` y `make wiki-sub` crean el resto. `make hooks` activa
+un pre-commit que corre el guard sobre la wiki.
 
 ## Estructura
 
@@ -40,7 +48,7 @@ scripts/      NN_*.sh por fase (10 QC, 20 normalize, 30 VEP, 40 Exomiser, 50 fas
 src/mva/      guard, fixtures, qc, exomiser, prioritize, submission (CLIs mva-*)
 tests/        pytest contra fixtures sintéticos
 fixtures/     datos sintéticos + cabecera sin muestras
-docs/         METHODS (write-up), LITERATURE, DATA_POLICY
+docs/         METHODS (write-up), LITERATURE, DATA_POLICY, wiki/ (vault de Obsidian)
 data/ work/   🔴 fuera de git
 outputs/      🟢 agregados: qc_summary.json, funnel.json, genes_ranked.tsv, top_pairs.tsv, ...
 submissions/  🟢 CSV de entrega

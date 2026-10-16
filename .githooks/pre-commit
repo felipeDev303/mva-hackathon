@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pre-commit: nada de la zona roja ni nada que el guard rechace llega a un commit.
+# Se activa con `make hooks` (git config core.hooksPath .githooks).
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+[[ -z "$STAGED" ]] && exit 0
+
+# 1. Rutas y extensiones prohibidas (los fixtures sintéticos son la única excepción)
+BAD=$(grep -E '^(data|work)/|\.(vcf|vcf\.gz|bcf|bam|bai|cram|crai|fastq|fastq\.gz|fq\.gz|tbi|csi)$|\.ipynb$' <<<"$STAGED" \
+      | grep -v '^fixtures/' | grep -v '/\.gitkeep$' || true)
+if [[ -n "$BAD" ]]; then
+  echo "pre-commit: archivos de zona roja o genómicos en el commit:" >&2
+  sed 's/^/  ✗ /' <<<"$BAD" >&2
+  exit 1
+fi
+
+# 2. Guard sobre la zona verde que se está commiteando
+GREEN=$(grep -E '^(outputs|submissions|docs/wiki)/' <<<"$STAGED" | grep -v '/\.gitkeep$' || true)
+if [[ -n "$GREEN" ]]; then
+  # shellcheck disable=SC2086
+  mva-guard $GREEN || { echo "pre-commit: el guard rechazó archivos de la zona verde." >&2; exit 1; }
+fi

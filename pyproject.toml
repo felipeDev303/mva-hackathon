@@ -18,6 +18,7 @@ mva-exomiser-config = "mva.exomiser:main"
 mva-exomiser-summary = "mva.exomiser:summary_main"
 mva-prioritize = "mva.prioritize:main"
 mva-submission = "mva.submission:main"
+mva-wiki = "mva.wiki:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

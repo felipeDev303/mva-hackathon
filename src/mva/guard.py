@@ -9,9 +9,13 @@ antes de que un LLM lo lea o se suba a git. Sale con código 1 si encuentra:
   * archivos más grandes que `max_file_bytes`,
   * extensiones genómicas (.vcf, .bam, .cram, ...).
 
+En notas de prosa (.md/.txt/.json, p. ej. la wiki) además rechaza genotipos
+explícitos (0/1, 1|0, GT=...), el id de la muestra y más de `max_variant_rows`
+coordenadas chrN:pos. Rechaza imágenes con "igv" en el nombre.
+
 Uso:
-    mva-guard                  # revisa outputs/
-    mva-guard outputs/ docs/   # revisa rutas concretas
+    mva-guard                               # revisa outputs/
+    mva-guard outputs submissions docs/wiki # lo que corre `make guard`
 """
 
 from __future__ import annotations
@@ -34,6 +38,11 @@ POS_COLS = {"pos", "position", "pos_1", "start"}
 VCF_RECORD = re.compile(r"^(chr)?([0-9]{1,2}|X|Y|MT?)\t\d+\t[^\t]*\t[ACGTN*,.<>]+\t[ACGTN*,.<>]+\t", re.I)
 # Genotipo estilo VCF dentro de cualquier celda: 0/1, 1|0, 0/1:35:...
 GT_TOKEN = re.compile(r"(?<![\w.])[0-9.][/|][0-9.](:|\b)")
+# En prosa (markdown) solo los genotipos inequívocos, para no confundir fracciones como 3/4.
+PROSE_GT = re.compile(r"(?<![\w./|])(0/1|1/0|0\|1|1\|0|1\|1|\./\.)(?![\w/|])|\bGT[=:]\s*[01.][/|][01.]")
+# Coordenadas tipo chr15:40117088 o chr15 40117088 (cuenta cuántas hay en un texto).
+COORD = re.compile(r"\bchr(?:[0-9]{1,2}|X|Y|M)[:\s,_-]+\d{4,}\b", re.I)
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp", ".pdf")
 
 
 @dataclass
@@ -60,6 +69,9 @@ def check_file(path: Path, cfg: dict, report: Report) -> None:
     if name.endswith(GENOMIC_SUFFIXES):
         report.add(path, "extensión genómica en zona verde")
         return
+    if name.endswith(IMAGE_SUFFIXES) and "igv" in name:
+        report.add(path, "captura de IGV en zona verde (muestra lecturas; déjala en work/igv/)")
+        return
     if not name.endswith(TEXT_SUFFIXES):
         return  # imágenes, html propios, etc. no se inspeccionan
     report.checked += 1
@@ -78,7 +90,21 @@ def check_file(path: Path, cfg: dict, report: Report) -> None:
             report.add(path, f"línea {i}: registro con forma de VCF")
             return
 
+    upper_text = text.upper()
+    for sid in sample_ids:
+        if sid and re.search(rf"(?<![A-Z0-9]){re.escape(sid)}(?![A-Z0-9])", upper_text):
+            report.add(path, "contiene el id de la muestra")
+            return
+
     if not name.endswith((".tsv", ".csv")):
+        # Notas en prosa (wiki, write-up): genotipos explícitos y listas largas de coordenadas.
+        for i, line in enumerate(text.splitlines(), start=1):
+            if PROSE_GT.search(line):
+                report.add(path, f"línea {i}: genotipo explícito ({PROSE_GT.search(line).group(0)!r})")
+                return
+        n_coords = len(COORD.findall(text))
+        if n_coords > max_rows:
+            report.add(path, f"{n_coords} coordenadas genómicas > límite {max_rows}")
         return
 
     lines = [ln for ln in text.splitlines() if ln.strip() and not ln.startswith("#")]
@@ -111,7 +137,7 @@ def run(paths: list[Path], cfg: dict) -> Report:
     for root in paths:
         files = [root] if root.is_file() else sorted(p for p in root.rglob("*") if p.is_file())
         for f in files:
-            if f.name == ".gitkeep":
+            if f.name == ".gitkeep" or ".obsidian" in f.parts or ".trash" in f.parts:
                 continue
             check_file(f, cfg, report)
     return report

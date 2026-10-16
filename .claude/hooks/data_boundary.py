@@ -13,11 +13,29 @@ quien corre los pasos sobre datos reales.
 
 import json
 import re
+import shlex
 import sys
 
 RED_DIRS = re.compile(r"(^|[\s'\"=/(:])(\.?/)?(data|work)(/|\s|$|['\"])")
 GENOMIC = re.compile(r"[\w./-]*\.(vcf(\.gz)?|bcf|bam|cram|fastq(\.gz)?|fq\.gz)\b", re.I)
-REAL_TARGETS = re.compile(r"\bmake\s+(.*\s)?(qc|normalize|annotate|exomiser|prioritize|phase|submission|real|all)\b")
+REAL_TARGET_NAMES = {"qc", "normalize", "annotate", "exomiser", "prioritize", "phase", "submission", "all"}
+
+
+def runs_real_target(cmd: str) -> bool:
+    """True si algún `make` del comando invoca un objetivo real-* (ignora variables y textos entre comillas)."""
+    for seg in re.split(r"&&|\|\||;|\|", cmd):
+        try:
+            words = shlex.split(seg)
+        except ValueError:
+            words = seg.split()
+        if not words or words[0] != "make":
+            continue
+        targets = [w for w in words[1:] if not w.startswith("-") and "=" not in w]
+        if any(t.startswith("real-") or t in REAL_TARGET_NAMES for t in targets):
+            return True
+    return False
+
+
 HF_DOWNLOAD = re.compile(r"\b(hf|huggingface-cli)\s+download\b|snapshot_download|hf_hub_download")
 
 
@@ -25,7 +43,7 @@ def blocked_reason(tool: str, inp: dict) -> str | None:
     texts = []
     if tool == "Bash":
         cmd = inp.get("command", "")
-        if REAL_TARGETS.search(cmd):
+        if runs_real_target(cmd):
             return "objetivo de make sobre datos reales: lo corre el humano (make real-*)."
         if HF_DOWNLOAD.search(cmd):
             return "descarga del dataset gated: la hace el humano."
