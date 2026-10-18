@@ -14,7 +14,15 @@ grep -q '##FORMAT=<ID=GQ,' <<<"$HDR" && EXPR+=("FMT/GQ<${MIN_GQ}")
 grep -q '##FORMAT=<ID=DP,' <<<"$HDR" && EXPR+=("FMT/DP<${MIN_DP}")
 EXCL=$(IFS='|'; echo "${EXPR[*]:-}")
 
-bcftools norm --threads "$THREADS" -m -both -f "$REF" --check-ref w "$IN" -Ou \
+# Cromosomas primarios con prefijo "chr": el Space exige chr y la referencia de análisis lo usa.
+# El VCF del dataset viene sin prefijo (1, 2, …, MT); si ya lo trae, el mapa no cambia nada.
+CHR_MAP=$(mktemp); trap 'rm -f "$CHR_MAP"' EXIT
+{ for c in {1..22} X Y; do printf '%s\tchr%s\n' "$c" "$c"; done; printf 'MT\tchrM\nM\tchrM\n'; } > "$CHR_MAP"
+PRIMARY=$(printf 'chr%s,' {1..22} X Y M); PRIMARY=${PRIMARY%,}
+
+bcftools annotate --threads "$THREADS" --rename-chrs "$CHR_MAP" "$IN" -Ou \
+  | bcftools view --threads "$THREADS" -t "$PRIMARY" -Ou \
+  | bcftools norm --threads "$THREADS" -m -both -f "$REF" --check-ref w -Ou \
   | bcftools view --threads "$THREADS" -f PASS,. ${EXCL:+-e "$EXCL"} -Ou \
   | bcftools view --threads "$THREADS" -i 'GT="alt"' -Oz -o "$OUT"
 bcftools index -t "$OUT"

@@ -24,6 +24,7 @@ work/*
 
 # Referencias y caches pesados (se descargan, no se versionan)
 ref/
+/ref
 *.fa
 *.fa.fai
 *.fasta
