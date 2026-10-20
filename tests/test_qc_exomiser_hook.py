@@ -3,7 +3,7 @@ import importlib.util
 import pandas as pd
 
 from mva import REPO_ROOT
-from mva.exomiser import build_analysis, summarize_genes
+from mva.exomiser import build_sample, summarize_genes
 from mva.qc import parse_bcftools_stats, parse_header
 
 STATS = """# SN	[2]id	[3]key	[4]value
@@ -28,12 +28,11 @@ def test_parse_header_detects_grch38():
     assert h["build_from_chr1_length"] == "GRCh38" and h["chr_prefix"] is True
 
 
-def test_exomiser_build_analysis_injects_fields():
-    preset = {"analysis": {"genomeAssembly": "hg19", "vcf": None, "hpoIds": [], "steps": [{"x": 1}]},
-              "outputOptions": {"outputFormats": ["HTML"]}}
-    a = build_analysis(preset, "work/n.vcf.gz", "GRCh38", ["HP:0000252"])
-    assert a["analysis"]["genomeAssembly"] == "hg38"
-    assert a["analysis"]["hpoIds"] == ["HP:0000252"] and a["analysis"]["steps"] == [{"x": 1}]
+def test_exomiser_sample_is_phenopacket_with_hpo():
+    s = build_sample("PROBAND01", ["HP:0000252", "HP:0001511"])
+    assert s["id"] == "PROBAND01" and s["subject"]["id"] == "PROBAND01"
+    assert [f["type"]["id"] for f in s["phenotypicFeatures"]] == ["HP:0000252", "HP:0001511"]
+    assert "htsFiles" not in s  # el VCF va por --vcf, nunca dentro de la muestra
 
 
 def test_exomiser_summary_drops_variant_columns():
