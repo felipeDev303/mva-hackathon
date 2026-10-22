@@ -56,13 +56,15 @@ def build_sample(proband_id: str, hpo: list[str]) -> dict:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("-o", "--out", type=Path, default=Path("work/exomiser-sample.yml"))
+    ap.add_argument("--proband-id", default=None,
+                    help="muestra del VCF (Exomiser exige que coincida); por defecto proband_id de la config")
     ap.add_argument("--config", type=Path, default=None)
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
     hpo = read_hpo_terms(REPO_ROOT / cfg["hpo_file"])
     if not hpo:
         raise SystemExit("config/hpo_terms.txt no tiene términos HPO; cópialos del dataset primero.")
-    sample = build_sample(cfg["proband_id"], hpo)
+    sample = build_sample(args.proband_id or cfg["proband_id"], hpo)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(yaml.safe_dump(sample, sort_keys=False), encoding="utf-8")
     print(f"Muestra Exomiser escrita en {args.out} ({len(hpo)} términos HPO)")
@@ -77,7 +79,8 @@ def summarize_genes(df: pd.DataFrame, top: int) -> pd.DataFrame:
     if score in df.columns:
         df = df.sort_values(score, ascending=False)
     if "GENE_SYMBOL" in df.columns:
-        df = df.drop_duplicates("GENE_SYMBOL")
+        # Una fila por gen y modo de herencia: la fila AR de un gen no debe quedar oculta tras la AD.
+        df = df.drop_duplicates([c for c in ("GENE_SYMBOL", "MOI") if c in df.columns])
     return df.head(top)
 
 

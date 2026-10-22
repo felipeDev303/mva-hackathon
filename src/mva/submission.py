@@ -133,14 +133,22 @@ def validate(path: Path, cfg: dict) -> list[str]:
     return errs
 
 
+def load_module(path: Path, name: str):
+    """Importa un .py suelto. Se registra en sys.modules antes de ejecutarlo porque
+    @dataclass (con `from __future__ import annotations`) resuelve tipos desde ahí."""
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return mod
+
+
 def official_check(path: Path) -> str:
     """Si descargaste vendor/evaluation.py (make fetch-eval), corre su parser oficial."""
     ev = REPO_ROOT / "vendor" / "evaluation.py"
     if not ev.exists():
         return "vendor/evaluation.py no encontrado (corre `make fetch-eval` para validar con el parser oficial)"
-    spec = importlib.util.spec_from_file_location("hf_evaluation", ev)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    mod = load_module(ev, "hf_evaluation")
     parsed = mod.load_submission(str(path))
     return "parser oficial OK: " + ", ".join(f"{k}: {len(v)} filas" for k, v in parsed.items())
 

@@ -11,19 +11,22 @@ set -euo pipefail
 VCF="${1:-work/normalized.vcf.gz}"
 : "${EXOMISER_HOME:?exporta EXOMISER_HOME}"
 JAR=$(ls "$EXOMISER_HOME"/exomiser-cli-*.jar | head -1)
-PRESET="${PRESET:-$EXOMISER_HOME/examples/preset-genome-analysis.yml}"
+PRESET=$(realpath "${PRESET:-config/exomiser-genome-analysis.yml}")
 ASSEMBLY=$(python3 -c "import yaml;print(yaml.safe_load(open('config/config.yaml'))['assembly'])")
 mkdir -p work/exomiser outputs
 
 # Exomiser 15 pide muestra (phenopacket con HPO), VCF y análisis por separado.
-mva-exomiser-config -o work/exomiser-sample.yml
+# El id del phenopacket debe ser el de la muestra del VCF; queda solo en work/ y nunca se imprime.
+VCF_SAMPLE=$(bcftools query -l "$VCF" | head -1)
+mva-exomiser-config -o work/exomiser-sample.yml --proband-id "$VCF_SAMPLE"
 SAMPLE=$(realpath work/exomiser-sample.yml); VCF_ABS=$(realpath "$VCF"); OUTDIR=$(realpath work/exomiser)
 if ! ( cd "$EXOMISER_HOME" && java -Xmx"${EXOMISER_MEM:-12g}" -jar "$JAR" analyse \
     --sample "$SAMPLE" --vcf "$VCF_ABS" --assembly "$ASSEMBLY" --analysis "$PRESET" \
     --output-directory "$OUTDIR" --output-filename exomiser \
     --output-format HTML,TSV_GENE,TSV_VARIANT ) > work/exomiser/run.log 2>&1; then
-  echo "Exomiser falló. Últimas líneas de work/exomiser/run.log (sin coordenadas):" >&2
-  tail -5 work/exomiser/run.log | grep -vE 'chr[0-9XYM]+[-:_ ]+[0-9]{4,}' >&2
+  echo "Exomiser falló. Errores de work/exomiser/run.log (sin coordenadas ni id de muestra):" >&2
+  grep -E ' ERROR |Caused by' work/exomiser/run.log | sed "s/${VCF_SAMPLE}/<muestra>/g" \
+    | grep -vE 'chr[0-9XYM]+[-:_ ]+[0-9]{4,}|\b[0-9XYM]{1,2}-[0-9]{4,}-[ACGTN]+' | cut -c1-300 | tail -6 >&2
   exit 1
 fi
 

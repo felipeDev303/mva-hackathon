@@ -64,3 +64,10 @@ def test_hook_allows_green_zone():
     assert br("Read", {"file_path": "outputs/top_pairs.tsv"}) is None
     assert br("Read", {"file_path": "fixtures/synthetic.vcf"}) is None
     assert br("Bash", {"command": "pytest -q tests/test_guard.py"}) is None
+
+
+def test_exomiser_summary_keeps_each_moi():
+    df = pd.DataFrame({"#RANK": [1, 2, 3], "GENE_SYMBOL": ["A", "A", "B"], "MOI": ["AD", "AR", "AR"],
+                       "EXOMISER_GENE_COMBINED_SCORE": [0.9, 0.8, 0.1]})
+    s = summarize_genes(df, 50)
+    assert list(zip(s["GENE_SYMBOL"], s["MOI"])) == [("A", "AD"), ("A", "AR"), ("B", "AR")]
