@@ -22,3 +22,14 @@ la Console, permisos `deny` y hook sobre la zona roja, y `mva-guard` antes de le
 
 ## Consecuencias
 Los pasos sobre datos reales los corre siempre el humano (`make real-*`).
+
+## Actualización 22-oct-2026
+Los organizadores corrigieron su guía en la Discusión #2. Las cuentas de **consumo** (Claude Free/Pro, ChatGPT Plus)
+están permitidas con información específica o derivada del paciente si se cumplen dos condiciones:
+
+1. el entrenamiento de modelos está desactivado en la cuenta;
+2. no se da feedback (👍/👎) y el contenido no queda marcado para revisión de seguridad.
+
+Configuración usada en este proyecto: **Claude Pro/Max (Claude Code, extensión de VS Code), modelo Claude Opus 5.5,
+entrenamiento desactivado desde antes del proyecto, sin feedback.** La frontera de datos no cambia: el asistente no ve
+genotipos ni `work/`. Los pasos `make real-*` siguen siendo del humano.
