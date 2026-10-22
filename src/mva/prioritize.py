@@ -63,7 +63,7 @@ def load_annotated(path: Path, cfg: dict) -> pd.DataFrame:
     df = df.rename(columns=lambda x: x.lstrip("#").strip())
     out = pd.DataFrame({
         "chrom": df[c["chrom"]], "pos": df[c["pos"]].astype(int), "ref": df[c["ref"]], "alt": df[c["alt"]],
-        "gt": df[c["gt"]].str.split(":").str[0], "gene": df[c["gene"]].replace("", pd.NA),
+        "gt": df[c["gt"]].str.split(":").str[0], "gene": df[c["gene"]].replace({"": pd.NA, ".": pd.NA, "-": pd.NA}),
         "consequence": df.get(c["consequence"], ""), "impact": df.get(c["impact"], "MODIFIER"),
         "filter": df.get("FILTER", "PASS"),
         "existing": df.get(c.get("existing", "Existing_variation"), ""),
@@ -73,6 +73,7 @@ def load_annotated(path: Path, cfg: dict) -> pd.DataFrame:
     out["af"] = pd.concat([_num(df[a]) for a in af_cols], axis=1).max(axis=1) if af_cols else math.nan
     out["cadd"] = _num(df[c["cadd"]]) if c["cadd"] in df.columns else math.nan
     out["revel"] = _num(df[c["revel"]]) if c["revel"] in df.columns else math.nan
+    out["alphamissense"] = _num(df[c["alphamissense"]]) if c.get("alphamissense") in df.columns else math.nan
     sai = _cols(df, c["spliceai"])
     out["spliceai"] = pd.concat([_num(df[s]) for s in sai], axis=1).max(axis=1) if sai else math.nan
     return out
@@ -87,19 +88,31 @@ def known_mask(df: pd.DataFrame, cfg: dict) -> pd.Series:
 
 # ───────────────────────── scoring ─────────────────────────
 
+PREDICTORS = ("cadd", "revel", "spliceai", "alphamissense")
+
+
 def variant_score(df: pd.DataFrame, cfg: dict) -> pd.Series:
+    """Promedio ponderado de componentes en [0, 1].
+
+    Impacto y ClinVar cuentan siempre. Un predictor (CADD, REVEL, SpliceAI, AlphaMissense) solo entra al
+    promedio si su columna trae algún valor en este set: si VEP corrió sin ese plugin, su peso no diluye el score.
+    """
     s = cfg["scoring"]
     w = s["weights"]
-    impact = df["impact"].map(s["impact_base"]).fillna(0.1)
-    cadd = (df["cadd"] / 40).clip(0, 1).fillna(0)
-    revel = df["revel"].clip(0, 1).fillna(0)
-    sai = df["spliceai"].clip(0, 1).fillna(0)
-    clin = df["clinvar"].map(
-        lambda x: 1.0 if ("pathogenic" in x and "likely" not in x and "conflicting" not in x)
-        else (0.5 if "likely_pathogenic" in x else 0.0))
-    total = (w["impact"] * impact + w["cadd"] * cadd + w["revel"] * revel
-             + w["spliceai"] * sai + w["clinvar"] * clin)
-    return (total / sum(w.values())).round(4)
+    missing = pd.Series(math.nan, index=df.index)
+    comps = {
+        "impact": df["impact"].map(s["impact_base"]).fillna(0.1),
+        "clinvar": df["clinvar"].map(
+            lambda x: 1.0 if ("pathogenic" in x and "likely" not in x and "conflicting" not in x)
+            else (0.5 if "likely_pathogenic" in x else 0.0)),
+        "cadd": (df["cadd"] / 40).clip(0, 1),
+        "revel": df["revel"].clip(0, 1),
+        "spliceai": df["spliceai"].clip(0, 1),
+        "alphamissense": df.get("alphamissense", missing).clip(0, 1),
+    }
+    used = [k for k in comps if k in w and (k not in PREDICTORS or comps[k].notna().any())]
+    total = sum(w[k] * comps[k].fillna(0) for k in used)
+    return (total / sum(w[k] for k in used)).round(4)
 
 
 def gene_prior(gene: str, cfg: dict) -> tuple[float, str]:
@@ -217,8 +230,9 @@ def _variant_cols(v, suffix: str) -> dict:
 
 
 def top_pairs_table(hyp: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """Top-n hipótesis, una por gen (la mejor de cada gen; `hyp` ya viene ordenado)."""
     out = []
-    for i, h in hyp.head(n).iterrows():
+    for i, h in hyp.drop_duplicates("gene").head(n).reset_index(drop=True).iterrows():
         out.append({"rank": i + 1, "gene": h["gene"], "model": h["model"], "phase": h["phase"],
                     **_variant_cols(h["v1"], "1"), **_variant_cols(h["v2"], "2"),
                     "score": h["score"], "score_no_prior": h["score_no_prior"], "panel": h["panel"]})

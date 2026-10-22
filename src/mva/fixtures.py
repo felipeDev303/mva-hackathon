@@ -99,6 +99,15 @@ def write_annotated(rows: list[dict], path: Path) -> None:
             fh.write("\t".join(_fmt(r[c]) for c in ANNOT_COLUMNS) + "\n")
 
 
+# Únicas líneas de una cabecera real que pasan a los fixtures: ##GATKCommandLine, ##source y similares
+# traen rutas e id de la muestra aunque la cabecera se haya generado "sin muestras".
+STRUCTURAL = ("##fileformat=", "##FILTER=", "##FORMAT=", "##INFO=", "##contig=", "##ALT=")
+
+
+def structural_header(text: str) -> str:
+    return "\n".join(ln for ln in text.splitlines() if ln.startswith(STRUCTURAL)) + "\n"
+
+
 def write_vcf(rows: list[dict], header: str, path: Path) -> None:
     lines = [ln for ln in header.strip().splitlines() if not ln.startswith("#CHROM")]
     if not any("ID=GT," in ln for ln in lines):
@@ -118,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args(argv)
 
-    header = args.header.read_text(encoding="utf-8") if args.header else MIN_HEADER
+    header = structural_header(args.header.read_text(encoding="utf-8")) if args.header else MIN_HEADER
     if args.header and any(ln.startswith("#CHROM") and len(ln.split("\t")) > 8 for ln in header.splitlines()):
         raise SystemExit("La cabecera trae columnas de muestra. Regenérala con `bcftools view -h -G`.")
     args.out.mkdir(parents=True, exist_ok=True)

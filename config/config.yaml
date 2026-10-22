@@ -6,8 +6,8 @@ assembly: GRCh38               # el Space exige coordenadas GRCh38
 chrom_prefix: "chr"            # el Space usa "chr15"; submission.py normaliza a esto
 
 paths:
-  raw_vcf: data/CHANGE_ME.vcf.gz          # el VCF descargado del dataset
-  bam: data/CHANGE_ME.bam                 # o .cram; solo para fase e IGV
+  raw_vcf: data/CHANGE_ME.vcf.gz          # el VCF descargado del dataset (real en config/local.yaml)
+  bam: data/CHANGE_ME.bam                 # o .cram; solo para fase e IGV (real en config/local.yaml)
   reference_fasta: ref/GRCh38.fa          # misma referencia del alineamiento
   normalized_vcf: work/normalized.vcf.gz
   vep_vcf: work/vep.vcf.gz
@@ -56,6 +56,7 @@ scoring:
     impact: 0.35
     cadd: 0.20      # CADD_PHRED / 40, recortado a 1
     revel: 0.15
+    alphamissense: 0.15   # VEP plugin AlphaMissense (am_pathogenicity); ver ADR de predictores
     spliceai: 0.15
     clinvar: 0.15   # 1 si CLIN_SIG contiene pathogenic, 0.5 si likely_pathogenic
   max_pairs_per_gene: 3   # pares evaluados por gen (top-k variantes)
@@ -81,6 +82,7 @@ columns:
   af: [gnomADe_AF, gnomADg_AF, MAX_AF]
   cadd: CADD_PHRED
   revel: REVEL
+  alphamissense: am_pathogenicity
   spliceai: [SpliceAI_pred_DS_AG, SpliceAI_pred_DS_AL, SpliceAI_pred_DS_DG, SpliceAI_pred_DS_DL]
   clinvar: CLIN_SIG
   existing: Existing_variation

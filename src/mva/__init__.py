@@ -11,13 +11,30 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+# Rutas a los datos e id de la muestra: van aquí y no en config.yaml, porque el repo se publica.
+LOCAL_CONFIG = REPO_ROOT / "config" / "local.yaml"
+
+
+def _merge(base: dict, extra: dict) -> dict:
+    out = dict(base)
+    for k, v in extra.items():
+        out[k] = _merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
 
 
 def load_config(path: str | Path | None = None) -> dict:
-    """Carga config/config.yaml (o la ruta dada)."""
+    """Carga config/config.yaml (o la ruta dada).
+
+    Sin ruta explícita fusiona encima config/local.yaml si existe (fuera de git): rutas a los datos y
+    guard.sample_ids.
+    """
     cfg_path = Path(path) if path else REPO_ROOT / "config" / "config.yaml"
     with open(cfg_path, encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        cfg = yaml.safe_load(fh)
+    if path is None and LOCAL_CONFIG.exists():
+        with open(LOCAL_CONFIG, encoding="utf-8") as fh:
+            cfg = _merge(cfg, yaml.safe_load(fh) or {})
+    return cfg
 
 
 def read_hpo_terms(path: str | Path) -> list[str]:

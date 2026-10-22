@@ -7,8 +7,9 @@ mkdir -p work outputs fixtures
 
 # Cabecera sin columnas de muestra (-G): contigs, INFO, FORMAT, referencia.
 bcftools view -h -G "$VCF" > work/header_nosamples.txt
-# Copia apta para fixtures (no contiene genotipos ni el id de la muestra).
-grep -v '^#CHROM' work/header_nosamples.txt > fixtures/header_nosamples.txt
+# Copia para fixtures: solo líneas estructurales. ##GATKCommandLine, ##source y otras traen rutas e
+# id de la muestra aunque la cabecera sea "sin muestras" (-G).
+grep -E '^##(fileformat|FILTER|FORMAT|INFO|contig|ALT)=' work/header_nosamples.txt > fixtures/header_nosamples.txt
 
 bcftools stats -s - "$VCF" > work/bcftools_stats.txt
 mva-qc work/bcftools_stats.txt --header work/header_nosamples.txt -o outputs/qc_summary.json > /dev/null

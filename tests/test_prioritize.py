@@ -2,6 +2,7 @@ import json
 
 import pandas as pd
 
+from mva.fixtures import make_rows, write_annotated
 from mva.prioritize import (build_hypotheses, filter_candidates, load_annotated, load_phase, phase_factor,
                             run, variant_score)
 
@@ -82,3 +83,33 @@ def test_phase_factor():
     assert phase_factor("0|1", "1|0")[1] == "trans"
     assert phase_factor("1|0", "1|0")[1] == "cis"
     assert phase_factor("0/1", "0/1")[1] == "unknown"
+
+
+def test_rows_without_gene_symbol_are_dropped(tmp_path, cfg):
+    rows = make_rows(n_noise=50, seed=3)
+    rows.append(dict(rows[0], SYMBOL=".", POS=5_000_000))  # variante fuerte pero intergénica
+    ann = tmp_path / "a.tsv"
+    write_annotated(rows, ann)
+    cand, _ = filter_candidates(load_annotated(ann, cfg), cfg)
+    assert cand["gene"].notna().all() and "." not in set(cand["gene"])
+
+
+def test_weights_ignore_missing_predictors(cfg):
+    nan = float("nan")
+    df = pd.DataFrame({"impact": ["HIGH"], "clinvar": ["pathogenic"], "cadd": [nan], "revel": [nan],
+                       "spliceai": [nan]})
+    assert variant_score(df, cfg).iloc[0] == 1.0
+
+
+def test_alphamissense_enters_score(cfg):
+    nan = float("nan")
+    base = {"impact": ["MODERATE"], "clinvar": [""], "cadd": [nan], "revel": [nan], "spliceai": [nan]}
+    without = variant_score(pd.DataFrame(base), cfg).iloc[0]
+    with_am = variant_score(pd.DataFrame({**base, "alphamissense": [0.92]}), cfg).iloc[0]
+    assert with_am > without
+
+
+def test_top_pairs_one_hypothesis_per_gene(synth, cfg):
+    _, out = _run(synth, cfg)
+    top = pd.read_csv(out / "top_pairs.tsv", sep="\t")
+    assert top["gene"].is_unique

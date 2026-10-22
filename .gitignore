@@ -62,3 +62,6 @@ docs/wiki/.obsidian/plugins/
 docs/wiki/.obsidian/cache
 docs/wiki/.trash/
 *.save
+
+# Configuración local con rutas a los datos e id de la muestra (no se publica)
+config/local.yaml

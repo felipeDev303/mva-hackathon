@@ -11,9 +11,9 @@ SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 
 CFG      ?= config/config.yaml
-RAW_VCF  ?= $(shell python3 -c "import yaml;print(yaml.safe_load(open('$(CFG)'))['paths']['raw_vcf'])")
-BAM      ?= $(shell python3 -c "import yaml;print(yaml.safe_load(open('$(CFG)'))['paths']['bam'])")
-REF      ?= $(shell python3 -c "import yaml;print(yaml.safe_load(open('$(CFG)'))['paths']['reference_fasta'])")
+RAW_VCF  ?= $(shell python3 -c "from mva import load_config;print(load_config()['paths']['raw_vcf'])")
+BAM      ?= $(shell python3 -c "from mva import load_config;print(load_config()['paths']['bam'])")
+REF      ?= $(shell python3 -c "from mva import load_config;print(load_config()['paths']['reference_fasta'])")
 NORM     := work/normalized.vcf.gz
 PHASE    ?=
 SPACE    := https://huggingface.co/spaces/SageBio/rare-disease-real-kid-mva-hackathon-2026/raw/main
@@ -90,7 +90,7 @@ real-phase:
 	$(LOG_RUN)
 
 real-submission:
-	mva-submission build outputs/top_pairs.tsv
+	mva-submission build outputs/top_pairs.tsv $(if $(EPCR),--epcr-overrides $(EPCR),)
 	$(MAKE) guard
 	$(LOG_RUN)
 
