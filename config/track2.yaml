@@ -1,0 +1,97 @@
+# Track 2 · reposicionamiento de fármacos desde el mecanismo. Solo datos públicos y hallazgos a nivel de gen/variante.
+# Cada fuente bibliográfica tiene su PMID; `mva-repurpose` verifica que exista (PubMed esummary).
+
+seed:
+  gene: BUB1B
+  mechanism: loss_of_function      # pérdida de función bialélica, sensible a dosis
+  allele_notes:
+    - "c.2210T>G p.(Leu737*): codón 737 TTA→TGA (UGA), exón 17 de 23, NMD esperado (alelo nulo)"
+    - "c.3006T>G p.(Asn1002Lys): pseudoquinasa C-terminal (UniProt O60566 766–1050); probable menor estabilidad"
+  mechanism_pmids: [15475955, 22698286]   # Hanks 2004; Suijkerbuijk 2012
+
+network:
+  string_min_score: 900      # confianza STRING (0–1000)
+  string_limit: 25
+  reactome_pathways: [R-HSA-69618]   # Mitotic Spindle Checkpoint
+  proximity: 0.7             # proximidad mecanística de un fármaco que actúa sobre la vía (ver `axes`)
+
+# Proximidad mecanística (0–1) de cada eje al defecto primario:
+#   1.0 actúa sobre el alelo mutado · 0.8 sobre la cantidad/estabilidad de BUBR1 · 0.7 sobre la vía
+#   0.6 sobre la consecuencia celular (senescencia) · 0.5 sobre la vulnerabilidad del cáncer (aneuploidía)
+
+# Correcciones regulatorias (Open Targets refleja la fase máxima histórica en ChEMBL, no el estado actual)
+regulatory:
+  QUERCETIN: {approved: false, note: "Suplemento dietario; no es un fármaco aprobado como tal"}
+  ATALUREN: {approved: true, note: "Autorización condicional de la UE no renovada (marzo 2025); disponible en el Reino Unido según grupos de pacientes"}
+
+# Rol de cada gen en la red: define la dirección compatible con una pérdida de función de BUBR1.
+#   checkpoint          → señalizan la espera: inhibirlos EMPEORA el defecto; activarlos/estabilizarlos es compatible
+#   checkpoint_target   → APC/C-CDC20, lo que el punto de control frena: inhibirlo COMPENSA; activarlo empeora
+roles:
+  checkpoint: [BUB1B, BUB1, BUB3, MAD2L1, MAD1L1, TTK, KNL1, ZWINT, ZW10, KNTC1, ROD1, AURKB, CDCA8, INCENP, BIRC5,
+               CENPE, CENPF, NDC80, NUF2, SPC24, SPC25, PLK1, NEK2, TRIP13, MAD2L1BP]
+  checkpoint_target: [CDC20, ANAPC1, ANAPC2, ANAPC4, ANAPC5, ANAPC7, ANAPC10, ANAPC11, ANAPC13, ANAPC15, ANAPC16,
+                      CDC16, CDC23, CDC26, CDC27]
+
+pubmed:
+  # Co-mención del fármaco con el mecanismo (para fármacos que salen de la red)
+  mechanism_term: '(BUBR1[tiab] OR BUB1B[tiab] OR aneuploid*[tiab] OR "chromosomal instability"[tiab] OR "spindle assembly checkpoint"[tiab] OR "mitotic checkpoint"[tiab])'
+
+# Ejes curados desde la literatura verificada (fuentes en docs/wiki).
+axes:
+  - id: readthrough
+    label: "Lectura a través del codón de parada en el alelo p.(Leu737*) (UGA)"
+    rationale: >-
+      El nonsense crea UGA, el codón de parada con mayor lectura a través inducida por aminoglucósidos. Recuperar
+      BUBR1 de longitud completa desde ese alelo subiría la dosis total, que es lo limitante en un trastorno sensible
+      a dosis.
+    proximity: 1.0
+    drugs: [GENTAMICIN, ATALUREN]
+    pubmed_term: '("premature termination codon"[tiab] OR "nonsense mutation"[tiab] OR readthrough[tiab] OR "read-through"[tiab])'
+    pmids: [10917599]
+    notes:
+      GENTAMICIN: "Aprobada como antibiótico; la nefro y ototoxicidad limitan su uso crónico; dosis de lectura a través mayores a las antibióticas"
+  - id: aneuploidy_selective
+    label: "Vulnerabilidad de células aneuploides (prevención/terapia del cáncer)"
+    rationale: >-
+      Las células aneuploides tienen estrés proteotóxico y energético. En un cribado, la cloroquina (inhibidor de
+      autofagia), AICAR y 17-AAG frenaron selectivamente células aneuploides; la metformina rindió peor que AICAR.
+    proximity: 0.5
+    drugs: [HYDROXYCHLOROQUINE, CHLOROQUINE, METFORMIN]
+    pubmed_term: '(aneuploid*[tiab] OR "chromosomal instability"[tiab])'
+    pmids: [21315436]
+    notes:
+      HYDROXYCHLOROQUINE: "Uso pediátrico establecido (enfermedades autoinmunes); vigilar toxicidad retiniana"
+      METFORMIN: "Menor efecto que AICAR en el cribado original"
+  - id: senescence
+    label: "Senescencia celular como consecuencia de la aneuploidía"
+    rationale: >-
+      En ratones BubR1 hipomórficos, eliminar genéticamente las células senescentes p16+ retrasa los fenotipos de
+      envejecimiento. Dasatinib + quercetina es una combinación senolítica farmacológica.
+    proximity: 0.6
+    drugs: [DASATINIB, QUERCETIN]
+    pubmed_term: '(senolytic*[tiab] OR senescen*[tiab])'
+    pmids: [22048312, 25754370]
+    notes:
+      DASATINIB: "Aprobado (LMC/LLA, incluido uso pediátrico en leucemia); como senolítico, uso intermitente experimental"
+  - id: bubr1_level
+    label: "Nivel de BUBR1 por la vía NAD+/SIRT2 (contexto, sin fármaco aprobado)"
+    rationale: >-
+      SIRT2 mantiene desacetilada la K668 de BubR1 y el precursor de NAD+ NMN aumenta BubR1 en ratones; el NMN es un
+      suplemento, por eso no entra como candidato aprobado.
+    proximity: 0.8
+    drugs: []
+    pubmed_term: '(BUBR1[tiab] OR BUB1B[tiab])'
+    pmids: [24825348, 39490401]
+
+# Vigilar: fármacos fuera de la red con interacción plausible pero de dirección incierta. No son candidatos; son
+# alertas para el equipo tratante (p. ej. el esquema estándar del rabdomiosarcoma incluye vincristina).
+watch:
+  - id: spindle_poisons
+    label: "Venenos del huso (respuesta y toxicidad dependen del punto de control)"
+    rationale: >-
+      Su efecto antitumoral pasa por un arresto mitótico sostenido por el punto de control. Con BUBR1 reducido, los
+      estudios se contradicen: hay líneas celulares con más sensibilidad al paclitaxel y otras con menos. No hay datos
+      directos para vincristina. Vigilar respuesta y toxicidad; no implica cambiar el esquema estándar.
+    drugs: [VINCRISTINE, PACLITAXEL, DOCETAXEL]
+    pmids: [15210851, 15059905]

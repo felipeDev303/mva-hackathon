@@ -21,7 +21,7 @@ NOWIKI   ?=
 # Cada objetivo real-* deja su nota en docs/wiki/corridas/ al terminar bien (NOWIKI=1 lo desactiva).
 LOG_RUN   = $(if $(NOWIKI),true,mva-wiki run $@)
 
-.PHONY: setup hooks fixtures test guard fetch-eval versions wiki-day wiki-adr wiki-sub \
+.PHONY: setup hooks fixtures test guard fetch-eval versions track2 wiki-day wiki-adr wiki-sub \
         real-qc real-normalize real-annotate real-exomiser real-prioritize real-phase real-submission real-all
 
 # ── seguros ──────────────────────────────────────────────────────────────────
@@ -45,6 +45,10 @@ guard:
 fetch-eval:  ## descarga el evaluador oficial para validar el CSV localmente
 	curl -fsSL $(SPACE)/evaluation.py -o vendor/evaluation.py
 	@echo "vendor/evaluation.py descargado (no se versiona)."
+
+track2:  ## Track 2: candidatos a reposicionamiento desde el mecanismo (APIs públicas)
+	mva-repurpose
+	$(MAKE) guard
 
 wiki-day:
 	mva-wiki day

@@ -63,5 +63,8 @@ docs/wiki/.obsidian/cache
 docs/wiki/.trash/
 *.save
 
+# Caché de las APIs públicas del Track 2
+.cache/
+
 # Configuración local con rutas a los datos e id de la muestra (no se publica)
 config/local.yaml

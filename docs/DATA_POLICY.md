@@ -10,14 +10,18 @@ en la [discusión #2](https://huggingface.co/spaces/SageBio/rare-disease-real-ki
 
 ## LLMs: test Processor vs. Recipient
 Permitido solo si el proveedor **no entrena** con inputs/outputs ni adquiere derechos, y la
-retención es limitada en tiempo y propósito. Para datos del paciente: **tier Business/API**,
-no suscripciones de consumo (aunque tengan el entrenamiento desactivado). No calificar respuestas.
+retención es limitada en tiempo y propósito. No calificar respuestas.
 
-Línea para el write-up (rellenar):
-> LLM use: Anthropic API (Claude Code authenticated with a Console API key), model <MODELO>,
-> Commercial Terms, no training on customer content. The assistant only accessed code,
-> synthetic fixtures and aggregate outputs validated by `mva-guard`; genotype-level data never
-> left the local machine.
+**Guía actualizada de los organizadores (discusión #2, fines de sep-2026):** también se permiten
+cuentas de **consumo** (Claude Free/Pro, ChatGPT Plus) con información derivada del paciente, si
+el entrenamiento de modelos está **desactivado** en la cuenta y **no se da feedback** (👍/👎) ni hay
+contenido marcado para revisión de seguridad. Antes de esa corrección se exigía tier Business/API.
+
+Línea usada en el write-up:
+> Anthropic Claude Pro/Max subscription (Claude Code, VS Code extension), model Claude Opus 5.5;
+> model-training opt-out enabled for the whole project; no feedback (ratings) provided. The
+> assistant accessed code, synthetic fixtures and guard-validated aggregates; genotype-level data
+> never left the local machine.
 
 ## DELETE vs. KEEP
 | DELETE (porta el genoma) | KEEP (hallazgos) |
@@ -34,5 +38,10 @@ Asunto: MVA Hackathon 2026 – data deletion confirmation – <HF username>
 
 > I confirm that on <fecha> I deleted all hackathon data (VCF/BAM/CRAM/FASTQ, indices, derived
 > genotype-level tables, caches and local logs) from all systems I control: <laptop, WSL2>.
-> Third-party services used: Anthropic API (Commercial Terms, no training on customer content).
+> Third-party services used: <proveedor, plan y configuración; p. ej. Claude Pro/Max with
+> model-training opt-out, no feedback provided>.
 > Retained: submission, HPO terms, gene-level rankings, code and report, per the organizers' KEEP list.
+
+Para generar el borrado: `scripts/90_delete_data.sh` (con `REFS=1` borra también las referencias
+públicas). El script lee los identificadores de `config/local.yaml` para verificar que no quede nada
+y deja la fecha en `docs/DELETION_LOG.txt`.
